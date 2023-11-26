@@ -1,6 +1,6 @@
 # Topic 5
 
-## 
+ 
 # Load packages
 library(dagitty)
 library(ggdag)
