@@ -1,0 +1,89 @@
+# Topic 8
+
+# load libraries
+
+library(tidyverse)
+library(ggplot2)
+
+# load dataset
+
+df <- readRDS('Causal_Data_Science_Data/hospdd.rds')
+summary(df)
+
+############################## 1 ####################################
+
+################### treated hospital #################################
+# get ID of treated hospitals
+treated_id <- df %>% filter( procedure == 1) %>% pull(hospital)
+treated_id <- unique(treated_id)
+
+# calculate mean satisfaction before for treated hospitals
+treated_before <- c()
+
+for(i in treated_id){
+  x <- df %>% filter(hospital == treated_id[i],month<4) %>% pull (satis)
+  treated_before <- c(treated_before,x)
+}
+
+treated_before <- mean(treated_before)
+
+# calculate mean satisfactions after for treated hospitals
+treated_after <- c()
+
+for(i in treated_id){
+  x <- df %>% filter(hospital == treated_id[i],month>=4) %>% pull (satis)
+  treated_after <- c(treated_after,x)
+}
+
+treated_after <- mean(treated_after)
+
+############# control hospitals ##############################
+
+# get ID of control hospitals
+control_id <- df %>% filter( procedure == 0, month == 4) %>% pull(hospital)
+control_id <- unique(control_id)
+
+# calculate mean satisfaction before for control hospitals
+control_before <- c()
+
+for(i in control_id){
+  x <- df %>% filter(hospital == control_id[i],month<4) %>% pull (satis)
+  control_before <- c(control_before,x)
+}
+
+control_before <- mean(control_before)
+
+# calculate mean satisfactions after for control hospitals
+control_after <- c()
+
+for(i in control_id){
+  x <- df %>% filter(hospital == control_id[i],month>=4) %>% pull (satis)
+  control_after <- c(control_after,x)
+}
+
+control_after <- mean(control_after)
+
+################# Answer #################################
+
+# We can see that the treated hospitals have an higher mean satisfaction
+# after the treatment, while the mean satisfaction of the control hospitals
+# stayed nearly the same. This indicates that the treatment is successful
+
+############################ Event Study #############################
+
+ggplot(df, aes(x = month, y = satis, color = as.factor(procedure)))
+
+################################### 2 #################################
+
+# I want to include them as as.factor(), as this ensures that they will be
+# treated as categorical variables and not as continuous.
+# Which wouldn't make sense for months or ID's
+
+# get month of after treatment
+
+summary(lm(satis ~ as.factor(procedure)*month + as.factor(month) + as.factor(hospital) , data = df))
+
+# If we look at the results of the lm and the coefficients, we see that 
+# the procedure*month coefficient, which represents the average treatment effect
+# is really small and not significant for our model, while regressors like the 
+# hospital have an big significance
