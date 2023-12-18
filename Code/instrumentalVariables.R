@@ -1,0 +1,116 @@
+# Topic 9
+
+# load libraries
+
+library(tidyverse)
+library(dagitty)
+library(ggdag)
+library(ggplot2)
+library(estimatr)
+
+# load data 
+
+df <- readRDS('Causal_Data_Science_Data/rand_enc.rds')
+summary(df)
+
+############################# 1 ####################################
+
+# create DAG from dagitty
+dag_model <- 'dag {
+bb="0,0,1,1"
+"new feature" [exposure,pos="0.075,0.4"]
+"time spent" [outcome,pos="0.4,0.4"]
+"random encounter"[pos="0.2,0.5"]
+"new feature" -> "time spent"
+"random encounter" -> "new feature"
+}
+'
+# draw DAG
+ggdag_status(dag_model) +
+  guides(fill = "none", color = "none")+
+  theme_dag()+
+  geom_dag_text(color = "black")
+
+# The random encounter has a influence on the user to use the new feature.
+# However, it has no influence on the time spent in the app, as it is
+# not mandatory to use the feature.
+
+############################### 2 #############################
+
+model_naive <- lm(time_spent ~ used_ftr, data = df)
+summary(model_naive)
+
+# If we compute the naive, biased estimate, which assumes there are no other
+# influences, besides the new feature, regarding time spent we get an estimation
+# from 10.82269, which would indicate that the new feature is a huge succes
+
+############################### 3 ####################################
+
+############################ Monotonicity assumption #######################
+
+# The monotonicity assumption is fulfilled, as there exists no defiers.
+# This means that the effect of the instrument goes in the same/correct direction.
+# For a plot of this behaviour look at the DAG from part 1
+
+################################# Instrumentent Relevance #####################
+
+first_stage <- lm(used_ftr~rand_enc, data = df)
+summary(first_stage)
+
+# The linear regression from rand_enc to used_ftr, shows 
+#that the random encounter is statistically significant.
+# As can be observe by the p-value and F-statistic.
+
+################################# Exclusion restriction ####################
+
+# Assumption is not testable
+
+####################### Independent assumption ########################
+
+# Predicted 'probabilities' from first stage
+pred_fs <- predict(first_stage)
+
+# Create table with predictions and actual decisions
+pred_vs_actl <- tibble(
+  pred = pred_fs,
+  actl = df$used_ftr
+)
+
+# Plot predictions vs original
+ggplot(pred_vs_actl, aes(x = pred, y = actl, color = as.factor(actl))) +
+  geom_jitter(alpha = .5) +
+  scale_color_discrete(labels = c("Control Group", "Treatment Group")) +
+  theme(legend.title = element_blank())
+
+# From the plot we can see that the predicted probabilities are completely
+# overlapping between actually using the new feature and getting the randomized
+# encouragement
+
+
+########################### Adequate procedure #############################
+
+# Furthermore we can assume that there is no confounding between the instrument
+# and the treatment, as the people are chosen randomly. Furthermore there is no
+# confounding between the instrument and the outcome as we can assume, that
+# people don't change their user behavior based on a start message. Look at the
+# DAG for clarification.
+# Therefore the independence assumption is fulfilled.
+
+# The last assumption the "stable unit treatment value assumption" is also
+# fulfilled as another user receiving a start message, should have no influence
+# on your own outcome.
+
+# Therefore one can assume that the instrumental variable estimation is an
+# adequate procedure. As all assumptions are fulfilled and therefore is the 
+# variable valid.
+
+##################################### 4 #################################
+
+
+model_iv <- iv_robust(time_spent ~ used_ftr | rand_enc , data = df)
+summary(model_iv)
+
+# One can see that the estimation for the coefficient "used-feature" got smaller.
+# This points to a bias as the difference is relatively big with ~1.0.
+# As the naive, biased estimation is bigger than the actual estimation, we have
+# an upward bias
