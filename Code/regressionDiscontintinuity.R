@@ -3,6 +3,8 @@
 library(tidyverse)
 library(ggplot2)
 library(rddensity)
+library(ggthemr)
+ggthemr('flat dark')
 
 
 ###################################### Coupons ###############################
@@ -105,4 +107,38 @@ summary(lm_bw)
 
 ##############################################################################
 
-###########################
+########################### shipping ####################################
+
+#load data
+
+df <- readRDS("Causal_Data_Science_Data/shipping.rds")
+summary(df)
+
+# Just from the info alone, one can assume that the purchase amount is continuous
+# and smooth. Therefore it should be a valid running variable.
+# However if the value is known at which free shipping is offered, which normally
+# is the case, one can expect a heaping at the cut-off. Then this is the case,
+# the continuity assumption is no longer fulfilled, as the function is not smooth.
+# 
+# In contrast to the coupon, and the day since last purchase, which people can't
+# manipulate. The purchase amount can be manipulated by the customer.
+
+# For that reason I would argue that the purchase amount for free shipping is not a 
+# valid running variable, as it can be manipulated by the customer and as a result,
+# one would notice a heaping at the cut-off
+
+# Manual plot
+ggplot(df, aes(x = purchase_amount)) +
+  geom_histogram(binwidth = 5, color = "white", boundary = 30, alpha = .6) +
+  geom_vline(xintercept = 30, color = ggthemr::swatch()[5]) +
+  xlab("Purchase amount")+
+  ylab("Number of purchases")
+
+# As expected one can see that the number of purchases is falling of sharply right
+# before the 30 mark, which grants free shipping.
+# This can be explained by the fact that the free shipping purchase amount is known
+# before hand and customers are more willing to buy another small thing to get
+# past that cut-off.
+
+# Therefore this plot nicely illustrates that the purchases amount is not a suitable
+# running variable, as the continuity assumption is not fulfilled.
