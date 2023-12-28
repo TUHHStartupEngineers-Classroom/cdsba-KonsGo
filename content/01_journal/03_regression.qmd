@@ -2,6 +2,122 @@
 title: "Regression and Statistical Inference"
 ---
 
-::: callout-note
-You can delete everything in here and start fresh.
-:::
+This section is about regression. Regression is used to examine and explain the relationship
+between different variables.
+
+For the assignments the following data was used.
+````{r}
+#| echo: false
+library(tidyverse)
+df <- readRDS('~/GitHub/cdsba-KonsGo/Causal_Data_Science_Data/car_prices.rds')
+df
+````
+
+# Examine the data
+
+## Dimensions
+
+If one checks the dimensions of the data, one gets the following results.
+````{r}
+#| echo: false 
+dim(df)
+````
+This means that the data contains 181 rows and 22 collumns.
+
+## Detailed look
+
+````{r}
+#| echo: false
+summary(df)
+glimpse(df)
+````
+
+After the use of *summary()* and *glimpse()*. One can deduct the following from the data.
+
+The data contains data of type double <dbl> and character <chr>.
+The data of type double are numeric variables, therefor it is possible to
+perform mathematical operations with them, which is also done during summary().
+However for factor variables (data of type character) it only counts the 
+occurrences.
+
+Furthermore one can read the maxima and minima, as well as the certain mid values from the 
+summary. This is useful to get a feeling of the distribution of the data.
+
+# Linear Regression to determine relevant factors
+
+````{r}
+# All data
+lmCarModelAll <- lm(price ~ ., data = df)
+#summary(lmCarModelAll)
+sprintf("Adjusted R^2: %.4f", broom::glance(lmCarModelAll)$adj.r.squared)
+
+# Data only significant with at least alpha <= 0.1
+lmCarModell_zero_one <- lm(price ~ aspiration + doornumber + carbody + enginelocation
+                           + carwidth + enginetype + cylindernumber+ enginesize
+                           + fuelsystem  + stroke + peakrpm, data = df)
+#summary(lmCarModell_zero_one)
+sprintf("Adjusted R^2: %.4f", broom::glance(lmCarModell_zero_one)$adj.r.squared)
+
+# Data only significant with at least alpha <= 0.01
+lmCarModell_zero_zero_one <- lm(price ~ aspiration + carbody + enginelocation
+                           + carwidth + enginetype + cylindernumber+ enginesize
+                           + stroke + peakrpm, data = df)
+#summary(lmCarModell_zero_zero_one)
+sprintf("Adjusted R^2: %.4f", broom::glance(lmCarModell_zero_zero_one)$adj.r.squared)
+
+# Data only significant with at least alpha <= 0.01 and no enginetype
+lmCarModell_selected <- lm(price ~ aspiration + carbody + enginelocation
+                                + carwidth + cylindernumber+ enginesize
+                                + stroke + peakrpm, data = df)
+#summary(lmCarModell_selected)
+sprintf("Adjusted R^2: %.4f", broom::glance(lmCarModell_selected)$adj.r.squared)
+
+# Data only significant with at least alpha <= 0.1 and no doornumber
+lmCarModell_noDoor <- lm(price ~ aspiration + carbody + enginelocation
+                           + carwidth + enginetype + cylindernumber+ enginesize
+                           + fuelsystem  + stroke + peakrpm, data = df)
+#summary(lmCarModell_noDoor)
+sprintf("Adjusted R^2: %.4f", broom::glance(lmCarModell_noDoor)$adj.r.squared)
+````
+
+To save space, only the adjusted R^2^  is displayed, if one wants to see the summary, one can do so by running the code and uncomment the *summary()* lines.
+
+To get a good linear regression model, it was decided to start with all variables and slowly exclude variables with a small significants. Through this process, the best results were achived with following variables:
+aspiration, carbody, enginelocation, carwidth, enginetype
+cylindernumber, enginesize, fuelsystem, stroke and peakrpm
+
+With this variables one is able to achieve a adjusted R^2^ of 0.928
+
+# Choose one regressor
+
+This journal chose enginesize
+
+## Explain data type and values it can take on
+
+enginesize is of the type <dbl>, which means it contains numeric values,
+which can have decimal points. However enginesize is in the dataframe only 
+represented by integer values. Also it would make no sense for it to be negative.
+
+
+## Plot relationship between enginesize and price
+````{r}
+#| echo: false
+ggplot(df, aes(x = enginesize, y = price)) +
+geom_point(alpha = 0.8)
+````
+
+If one plots the enginesize in regard to the prize it can be seen that a bigger
+engine size correlates to an higher price and this correlation seems to be linear.
+So increasing the engine size will, most likely result in a higher price and a
+smaller engine size in a lower price.
+
+## Statistical significant
+````{r}
+#| echo: false
+summary(lmCarModell_noDoor)
+````
+If one takes a look at the before found linear model, one can see that the
+engine size is statistical significant with an p-value less than alpha = 0.001.
+The same can be seen by the linear model without variable selection.
+
+

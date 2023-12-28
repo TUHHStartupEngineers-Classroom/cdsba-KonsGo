@@ -2,6 +2,98 @@
 title: "Directed Acyclic Graphs"
 ---
 
-::: callout-note
-You can delete everything in here and start fresh.
-:::
+This section will introduce an option to graphically represent the relationship between 
+different variables with the help of **directed acylic graphs (DAGs)**
+
+# Display parking spot example
+
+````{r}
+#| echo: false
+library(dagitty)
+library(ggdag)
+library(ggplot2)
+
+parking_spot <- 'dag{
+bb="0,0,1,1"
+spots [exposure,pos="0.3,0.4"]
+sales [outcome,pos="0.4,0.4"]
+location [pos="0.35,0.5"]
+spots -> sales
+location -> sales
+location -> spots
+}
+'
+
+ggdag_status(parking_spot) +
+  guides(fill = "none", color = "none")+
+  theme_dag()+
+  geom_dag_text(color = "black")
+````
+
+As one can see the location influences the number of available spots and sales, while spots also influences the sales
+
+# Computing relevant values of data set *costumer_sat.rds*
+
+````{r}
+#| echo: false
+
+df <- readRDS("~/GitHub/cdsba-KonsGo/Causal_Data_Science_Data/customer_sat.rds")
+df
+
+````
+
+## Regress *satisfaction* on *follow_ups*
+
+````{r}
+#| echo: false
+
+lm_followUp <- lm(satisfaction ~ follow_ups, data = df)
+summary(lm_followUp)
+````
+
+## Regress *satisfaction* on *follow_ups* and account for *subscription*
+
+`````{r}
+#| echo: false
+lm_follAndSub <- lm(satisfaction ~ follow_ups + subscription, data = df)
+summary (lm_follAndSub)
+````
+
+# Compare the coefficients
+
+**Satisfaction on follow_ups**
+
+m1 = -3.3093 b = 78.886
+
+**Satisfaction on follow_ups and account for subscription**
+
+m1 = 2.1944 m2 = 44.7222 m3 = 18.0722 b = 26.7667
+
+Explanation: As the satisfaction decreases, if the data is not conditioned 
+on subscription, but at the same time increases, if conditioned on subscription
+you can assume that the subscription has an negative impact on the satisfaction
+This can have multiple explanations, maybe the product is to expensive or
+the amount of functions to overwhelming.
+
+# Plot data
+
+````{r}
+#| echo: false
+
+# Not conditioning on subscription
+simps_not_cond <- ggplot(df, aes(x = follow_ups, y = satisfaction)) +
+  geom_point(alpha = .8) +
+  stat_smooth(method = "lm", se = F)
+
+# Conditioning on subscription
+simps_cond <- ggplot(df, aes(x = follow_ups, y = satisfaction, color = subscription)) +
+  geom_point(alpha = .8) +
+  stat_smooth(method = "lm", se = F) +
+  theme(legend.position = "right")
+
+# Plot both plots
+simps_not_cond
+simps_cond
+````
+
+As one can see that if the subscription is accounted for, the satisfaction increases for all subscription tiers if the support does a follow up.

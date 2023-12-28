@@ -31,20 +31,3 @@ ggplot(dfSpurious, aes(x = year))+
   theme(axis.title.y.left=element_text(colour="red"), axis.title.y.right = element_text(color = "black"))+
   scale_x_continuous("year",labels = as.character(year),breaks = year)
 
-# To show it with  linear model
-lmSpurious <- lm(degrees ~ spaceLaunch, dfSpurious)
-
-# Add fitted values and residuals to data
-lm_dat_fit <- lm_dat %>% 
-  mutate(degrees_fit = predict(lmSpurious),
-         r   = degrees - degrees_fit)
-
-# Plot distance of actual to fit
-ggplot(lm_dat_fit, aes(x = spaceLaunch, y = degrees)) + 
-  geom_point(size = 3) +
-  geom_smooth(method='lm', formula= y ~ x, se = F) +
-  geom_segment(aes(xend = spaceLaunch, yend = degrees_fit), color = ggthemr::swatch()[2]) +
-  labs(title = "Worldwide non-comercial space launches \ncorrelates with \nSociology doctorates awarded (US)")+
-  xlab("Worldwide non-commercial space launches")+
-  ylab("Sociology doctorates awarded (US)")
-

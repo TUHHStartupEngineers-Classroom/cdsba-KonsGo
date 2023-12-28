@@ -2,6 +2,116 @@
 title: "Statistical Concepts"
 ---
 
-::: callout-note
-You can delete everything in here and start fresh.
-:::
+This section will talk about statistical concepts, which are the basics in statistical and casual inference.
+
+For the following assignments the table *"random_vars.rds"* is used.
+```{r}
+#| echo: false
+library(tidyverse)
+random_vars <- readRDS("~/GitHub/cdsba-KonsGo/Causal_Data_Science_Data/random_vars.rds")
+sorted_vars_age <- arrange(random_vars,age)
+sorted_vars_age
+```
+
+# Compute statistical values
+## Compute statistical values for age
+
+### expected value
+
+````{r}
+groupedAge <- sorted_vars_age %>% group_by(age) %>% summarise( n = n())
+expectedAge <- weighted.mean(groupedAge[,1],groupedAge[,2])
+expectedAge
+````
+
+### variance
+````{r}
+varianceAge <- var(groupedAge[[1]])
+varianceAge
+````
+
+### standard deviation
+````{r}
+deviationAge <- sd(groupedAge[[1]])
+deviationAge
+````
+
+## Compute statistical values for income
+
+### expected value
+
+````{r}
+groupedIncome <- sorted_vars_age %>% group_by(income) %>% summarise( n = n())
+expectedIncome <- weighted.mean(groupedIncome[,1],groupedIncome[,2])
+expectedIncome
+````
+
+### variance
+
+````{r}
+varianceIncome <- var(groupedIncome[[1]])
+varianceIncome
+````
+
+### standard deviation
+````{r}
+deviationIncome <- sd(groupedIncome[[1]])
+deviationIncome
+````
+
+# Explain the usefullness of comparing the standard deviations
+
+It doesn't make sense to compare the two standard deviations as they describe
+the variation of two different data sets, what would make more sense is to
+compare the standard deviations of the income of different age groups
+ 
+# Examine the relationship between both variables
+
+## Covariance
+
+````{r}
+#| echo: false
+covariance <- cov(sorted_vars_age[[1]],sorted_vars_age[[2]])
+covariance
+````
+
+## Correlation
+
+````{r}
+#| echo: false
+correlation <- cor(sorted_vars_age[[1]],sorted_vars_age[[2]])
+correlation
+````
+
+# Interpret the results
+
+The correlation is easier to interpret, as it is normalized in respect to the
+variance of the two data sets.
+From the fundamentals we learned that a high covariance means a low independence,
+however because of the scaling of the data sets we can't define what high means.
+ 
+Here comes the correlation into play as it norms the covariance to a value of
+-1 to 1, where values close to 1 mean a nearly linear relationship.
+In our data set we have a correlation of 0.548, which indicates that there exists
+a dependency between age and income and that with growing age the income also growths.
+However as 0.548 is still far away from 1 we can also conclude that there are many 
+more factors, which have an impact on the income, which we didn't consider.
+
+# Compute the conditional expected value
+
+````{r}
+# age < 18
+selectedAgeOne <- sorted_vars_age  %>% filter(age<18) %>% group_by(income) %>% summarise( n = n())
+conAgeOne <- weighted.mean(selectedAgeOne[,1],selectedAgeOne[,2])
+conAgeOne
+# age [18,65)
+selectedAgeTwo <- sorted_vars_age  %>% filter(age>=18 & age<65) %>% group_by(income) %>% summarise( n = n())
+conAgeTwo <- weighted.mean(selectedAgeTwo[,1],selectedAgeTwo[,2])
+conAgeTwo
+# age >= 65
+selectedAgeThree <- sorted_vars_age  %>% filter(age>=65) %>% group_by(income) %>% summarise( n = n())
+conAgeThree <- weighted.mean(selectedAgeThree[,1],selectedAgeThree[,2])
+conAgeThree
+````
+
+This three values express the expected value for the given age groups, as one can see the value for the age group of 18 - 65 is the highest, as this is the age group, who normally works and actively earns money.

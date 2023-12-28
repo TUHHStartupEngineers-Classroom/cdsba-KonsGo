@@ -2,6 +2,122 @@
 title: "Randomized Controlled Trials"
 ---
 
-::: callout-note
-You can delete everything in here and start fresh.
-:::
+This section will use the data from *abtest_online.rds*
+````{r}
+#| echo: false
+
+library(ggplot2)
+
+#load dataset
+df <- readRDS('~/GitHub/cdsba-KonsGo/Causal_Data_Science_Data/abtest_online.rds')
+summary(df)
+````
+
+# Check the balance of the covariates
+
+````{r}
+#| echo: false
+
+#visit (independent)
+compare_visit <- 
+  ggplot(df, 
+         aes(x = chatbot, 
+             y = previous_visit, 
+             color = as.factor(chatbot))) +
+  stat_summary(geom = "errorbar", 
+               width = .5,
+               fun.data = "mean_se", 
+               fun.args = list(mult=1.96),
+               show.legend = F) +
+  labs(x = NULL, y = "previous visits", title = "Difference in previous visits")
+
+# mobile (independent)
+compare_mobile <- 
+  ggplot(df, 
+         aes(x = chatbot, 
+             y = mobile_device, 
+             color = as.factor(chatbot))) +
+  stat_summary(geom = "errorbar", 
+               width = .5,
+               fun.data = "mean_se", 
+               fun.args = list(mult=1.96),
+               show.legend = F) +
+  labs(x = NULL, y = "mobile device", title = "Difference in mobile device")
+
+# outcome (dependent)
+compare_purchase <- 
+  ggplot(df, 
+         aes(x = chatbot, 
+             y = purchase, 
+             color = as.factor(chatbot))) +
+  stat_summary(geom = "errorbar", 
+               width = .5,
+               fun.data = "mean_se", 
+               fun.args = list(mult=1.96),
+               show.legend = F) +
+  labs(x = NULL, y = "purchase", title = "Difference in purchase")
+
+compare_amount <- 
+  ggplot(df, 
+         aes(x = chatbot, 
+             y = purchase_amount, 
+             color = as.factor(chatbot))) +
+  stat_summary(geom = "errorbar", 
+               width = .5,
+               fun.data = "mean_se", 
+               fun.args = list(mult=1.96),
+               show.legend = F) +
+  labs(x = NULL, y = "Purchase amount", title = "Difference in purchase amout")
+
+# Plot 
+compare_visit
+compare_mobile
+#compare_purchase
+#compare_amount
+
+````
+The plot shows the distribution of the two groups *chatbot* and *no chatbot*.
+As one can see the covariate of previous_visits is not balanced, while the covariate for mobile_device is balanced.
+
+# Regression to find the effect of chatbot on sales
+
+````{r}
+#| echo: false
+
+lm_ate <- lm(purchase_amount ~ chatbot, data = df)
+summary(lm_ate)
+
+lm_ate_visit <- lm(purchase_amount ~ chatbot + previous_visit, data = df)
+summary(lm_ate_visit)
+
+````
+
+Regression confirms the results of part 1. As the previous visits are not a 
+balanced covariate. They can't be excluded from the regression
+
+# Subgroup specific effects
+
+This journal used for this assignment the subgroup: *moblie users*.
+
+````{r}
+#| echo: false
+
+lm_cate <-lm(purchase_amount ~ chatbot*mobile_device + previous_visit, data = df)
+summary(lm_cate)
+````
+
+The subgroup of mobile users has no specific effect on the purchase amount,
+as one can see by the results of the CATE with mobile users, as they are not significant.
+
+# Logistic regression for *purchase*
+
+````{r}
+#| echo: false
+glm_ate <- glm(purchase ~ chatbot + previous_visit, family=binomial(link='logit'), data = df)
+summary(glm_ate)
+````
+
+e^(-0.96827)^ = 0.3797 -> 1 - 0.3797 = 0.6203
+
+The chatbot is associated with a 62% reduction of purchases. This means
+that chatbot more than halves the amount of purchases made.
